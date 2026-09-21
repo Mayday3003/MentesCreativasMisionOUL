@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Orbital Realista: Sol - Tierra - Luna</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="webgl-canvas"></canvas>
+
+    <div class="ui-container glass-panel">
+        <div class="header-section">
+            <span class="badge">Astrofísica 3D</span>
+            <h1>Sol • Tierra • Luna</h1>
+            <p class="subtitle">Física orbital, ciclo lunar y magnetosfera con viento solar</p>
+        </div>
+        
+        <div class="control-group">
+            <h3>Perspectiva de Cámara</h3>
+            <div class="button-row">
+                <button class="btn-glass active" id="btn-cam-global">Global (3 Cuerpos)</button>
+                <button class="btn-glass" id="btn-cam-sun">En el Sol</button>
+                <button class="btn-glass" id="btn-cam-earth">En la Tierra</button>
+                <button class="btn-glass" id="btn-cam-moon">En la Luna</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Ciclo Lunar (Simulación)</h3>
+            <div class="button-row">
+                <button class="btn-glass" id="btn-phase-new">🌑 Nueva</button>
+                <button class="btn-glass" id="btn-phase-first">🌓 Creciente</button>
+                <button class="btn-glass" id="btn-phase-full">🌕 Llena</button>
+                <button class="btn-glass" id="btn-phase-third">🌗 Menguante</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <h3>Capas y Entorno</h3>
+            <div class="button-column">
+                <button class="btn-glass" id="btn-toggle-stars">🌌 Alternar Estrellas</button>
+                <button class="btn-glass" id="btn-toggle-magnet">⚡ Alternar Magnetosfera</button>
+                <button class="btn-glass" id="btn-toggle-orbits">🪐 Alternar Órbitas</button>
+            </div>
+        </div>
+
+        <div class="info-footer">
+            <div class="info-item">
+                <span class="info-label">Magnetosfera:</span>
+                <span class="info-val">Bow Shock + Magnetocola (Plasma)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Interacción:</span>
+                <span class="info-val">Arrastra para rotar • Rueda para zoom</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulos nativos ES6 importados vía CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
