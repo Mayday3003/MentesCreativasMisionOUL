@@ -158,6 +158,16 @@ btnToggleMagnet.onclick = () => {
     btnToggleMagnet.classList.toggle('active', !isVisible);
 };
 
+// Alternar Radiación Solar / Viento Solar
+const btnToggleWind = document.getElementById('btn-toggle-wind');
+if (btnToggleWind) {
+    btnToggleWind.onclick = () => {
+        const isVisible = magnetosphere.toggleSolarWind();
+        btnToggleWind.innerText = isVisible ? "☀️ Ocultar Radiación Solar" : "☀️ Mostrar Radiación Solar";
+        btnToggleWind.classList.toggle('active', !isVisible);
+    };
+}
+
 // Alternar Órbitas
 const btnToggleOrbits = document.getElementById('btn-toggle-orbits');
 if (btnToggleOrbits) {
