@@ -60,7 +60,7 @@ function setCameraMode(mode) {
 
 // 5. Bucle de Simulación y Renderizado
 simulation.renderer.setAnimationLoop(() => {
-    // Actualizar tiempo
+    // Actualizar tiempo (avanza o pausa según TimeController)
     const time = timeController.update();
 
     // Actualizar entidades
@@ -75,8 +75,7 @@ simulation.renderer.setAnimationLoop(() => {
     const sunPos = sun.getPosition();
 
     if (cameraMode === 'sun') {
-        // Posicionado en el Sol
-        simulation.cameraTarget.copy(earthPos); // Enfoca hacia la Tierra
+        simulation.cameraTarget.copy(earthPos);
         const desiredPos = sunPos.clone().add(cameraRelativeOffset);
         if (simulation.isTransitioningCamera) {
             simulation.camera.position.lerp(desiredPos, 0.05);
@@ -85,7 +84,6 @@ simulation.renderer.setAnimationLoop(() => {
             simulation.camera.position.copy(desiredPos);
         }
     } else if (cameraMode === 'earth') {
-        // Posicionado en la Tierra, orbitando con ella
         simulation.cameraTarget.copy(earthPos);
         const desiredPos = earthPos.clone().add(cameraRelativeOffset);
         if (simulation.isTransitioningCamera) {
@@ -95,7 +93,6 @@ simulation.renderer.setAnimationLoop(() => {
             simulation.camera.position.copy(desiredPos);
         }
     } else if (cameraMode === 'moon') {
-        // Posicionado en la Luna, orbitando con ella
         simulation.cameraTarget.copy(moonPos);
         const desiredPos = moonPos.clone().add(cameraRelativeOffset);
         if (simulation.isTransitioningCamera) {
@@ -105,11 +102,10 @@ simulation.renderer.setAnimationLoop(() => {
             simulation.camera.position.copy(desiredPos);
         }
     } else {
-        // Modo Global
         simulation.cameraTarget.lerp(new THREE.Vector3(20, 0, 0), 0.04);
     }
 
-    // Renderizado y actualización de controles de Three.js
+    // Renderizado y controles
     simulation.update();
 });
 
@@ -117,13 +113,71 @@ simulation.renderer.setAnimationLoop(() => {
 // 6. Controles e Interfaz de Usuario (UI)
 // ==========================================
 
+// Ocultar / Mostrar Barra Lateral
+const sidebarPanel = document.getElementById('sidebar-panel');
+const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+const navToggleText = document.getElementById('nav-toggle-text');
+
+if (btnToggleSidebar && sidebarPanel) {
+    let sidebarOpen = true;
+    btnToggleSidebar.onclick = () => {
+        sidebarOpen = !sidebarOpen;
+        sidebarPanel.classList.toggle('collapsed', !sidebarOpen);
+        if (navToggleText) {
+            navToggleText.innerText = sidebarOpen ? "Ocultar Panel" : "Mostrar Panel";
+        }
+    };
+}
+
+// Control Temporal: Pausar / Reanudar
+const btnPlayPause = document.getElementById('btn-play-pause');
+
+function updatePlayPauseUI(isPaused) {
+    if (!btnPlayPause) return;
+    btnPlayPause.innerText = isPaused ? "Reanudar" : "Pausar";
+    btnPlayPause.classList.toggle('paused', isPaused);
+}
+
+if (btnPlayPause) {
+    btnPlayPause.onclick = () => {
+        const isPaused = timeController.togglePause();
+        updatePlayPauseUI(isPaused);
+    };
+}
+
+// Callback de TimeController para pausar automáticamente al llegar a una fase
+timeController.onPauseChanged = (isPaused) => {
+    updatePlayPauseUI(isPaused);
+};
+
+// Control de Velocidad: Slider y Reiniciar
+const speedSlider = document.getElementById('speed-slider');
+const speedLabel = document.getElementById('speed-label');
+const btnResetSpeed = document.getElementById('btn-reset-speed');
+
+if (speedSlider) {
+    speedSlider.oninput = (e) => {
+        const val = parseFloat(e.target.value);
+        timeController.setSpeedMultiplier(val);
+        if (speedLabel) speedLabel.innerText = val.toFixed(1) + 'x';
+    };
+}
+
+if (btnResetSpeed) {
+    btnResetSpeed.onclick = () => {
+        timeController.setSpeedMultiplier(1.0);
+        if (speedSlider) speedSlider.value = "1.0";
+        if (speedLabel) speedLabel.innerText = "1.0x";
+    };
+}
+
 // Selección de Cámaras
 document.getElementById('btn-cam-global').onclick = () => setCameraMode('global');
 document.getElementById('btn-cam-sun').onclick = () => setCameraMode('sun');
 document.getElementById('btn-cam-earth').onclick = () => setCameraMode('earth');
 document.getElementById('btn-cam-moon').onclick = () => setCameraMode('moon');
 
-// Fases Lunares (Aceleración temporal astronómicamente correcta)
+// Fases Lunares (Aceleración y Pausa Automática al llegar a la fase)
 const phaseButtons = [
     document.getElementById('btn-phase-new'),
     document.getElementById('btn-phase-first'),
@@ -134,7 +188,8 @@ const phaseButtons = [
 function activatePhase(btn, angle) {
     phaseButtons.forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
-    timeController.fastForwardToPhase(angle);
+    // Viajar rápido hasta la posición geométrica y parar automáticamente
+    timeController.fastForwardToPhase(angle, true);
 }
 
 document.getElementById('btn-phase-new').onclick = (e) => activatePhase(e.target, Math.PI);
@@ -146,24 +201,24 @@ document.getElementById('btn-phase-third').onclick = (e) => activatePhase(e.targ
 const btnToggleStars = document.getElementById('btn-toggle-stars');
 btnToggleStars.onclick = () => {
     const isVisible = simulation.toggleStars();
-    btnToggleStars.innerText = isVisible ? "🌌 Ocultar Estrellas" : "🌌 Mostrar Estrellas";
+    btnToggleStars.innerText = isVisible ? "Ocultar Estrellas" : "Mostrar Estrellas";
     btnToggleStars.classList.toggle('active', !isVisible);
 };
 
-// Alternar Magnetosfera
+// Alternar Campo Geomagnético de la Tierra (independiente del viento solar)
 const btnToggleMagnet = document.getElementById('btn-toggle-magnet');
 btnToggleMagnet.onclick = () => {
-    const isVisible = magnetosphere.toggle();
-    btnToggleMagnet.innerText = isVisible ? "⚡ Ocultar Magnetosfera" : "⚡ Mostrar Magnetosfera";
+    const isVisible = magnetosphere.toggleGeomagneticField();
+    btnToggleMagnet.innerText = isVisible ? "Ocultar Campo Geomagnético" : "Mostrar Campo Geomagnético";
     btnToggleMagnet.classList.toggle('active', !isVisible);
 };
 
-// Alternar Radiación Solar / Viento Solar
+// Alternar Viento Solar y Radiación (sin borrar las líneas del campo magnético terrestre)
 const btnToggleWind = document.getElementById('btn-toggle-wind');
 if (btnToggleWind) {
     btnToggleWind.onclick = () => {
         const isVisible = magnetosphere.toggleSolarWind();
-        btnToggleWind.innerText = isVisible ? "☀️ Ocultar Radiación Solar" : "☀️ Mostrar Radiación Solar";
+        btnToggleWind.innerText = isVisible ? "Ocultar Viento Solar" : "Mostrar Viento Solar";
         btnToggleWind.classList.toggle('active', !isVisible);
     };
 }
@@ -176,7 +231,7 @@ if (btnToggleOrbits) {
         orbitsVisible = !orbitsVisible;
         earth.orbitLine.visible = orbitsVisible;
         moon.orbitLine.visible = orbitsVisible;
-        btnToggleOrbits.innerText = orbitsVisible ? "🪐 Ocultar Órbitas" : "🪐 Mostrar Órbitas";
+        btnToggleOrbits.innerText = orbitsVisible ? "Ocultar Órbitas" : "Mostrar Órbitas";
         btnToggleOrbits.classList.toggle('active', !orbitsVisible);
     };
 }

@@ -1,0 +1,7 @@
+[build]
+  publish = "solar-system-sim"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"

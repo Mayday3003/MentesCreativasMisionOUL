@@ -9,13 +9,39 @@
 <body>
     <canvas id="webgl-canvas"></canvas>
 
-    <div class="ui-container glass-panel">
+    <!-- Barra Superior Izquierda para Ocultar/Mostrar el Panel -->
+    <div class="top-nav-bar">
+        <button id="btn-toggle-sidebar" class="btn-nav">
+            <span class="nav-icon-indicator"></span>
+            <span id="nav-toggle-text">Ocultar Panel</span>
+        </button>
+    </div>
+
+    <!-- Panel Lateral de Controles Glassmorphism -->
+    <div class="ui-container glass-panel" id="sidebar-panel">
         <div class="header-section">
             <span class="badge">Astrofísica 3D</span>
             <h1>Sol • Tierra • Luna</h1>
             <p class="subtitle">Física orbital, ciclo lunar y magnetosfera con viento solar</p>
         </div>
+
+        <!-- Control de Simulación (Pausa y Velocidad) -->
+        <div class="control-group">
+            <h3>Control Temporal</h3>
+            <div class="button-row" style="margin-bottom: 10px;">
+                <button class="btn-glass" id="btn-play-pause">Pausar</button>
+                <button class="btn-glass" id="btn-reset-speed">Reiniciar 1.0x</button>
+            </div>
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span>Velocidad:</span>
+                    <span id="speed-label" class="slider-val">1.0x</span>
+                </div>
+                <input type="range" id="speed-slider" min="0.1" max="4.0" step="0.1" value="1.0" class="slider-input">
+            </div>
+        </div>
         
+        <!-- Cámaras -->
         <div class="control-group">
             <h3>Perspectiva de Cámara</h3>
             <div class="button-row">
@@ -26,33 +52,35 @@
             </div>
         </div>
 
+        <!-- Fases Lunares con Pausa Automática -->
         <div class="control-group">
-            <h3>Ciclo Lunar (Simulación)</h3>
+            <h3>Ciclo Lunar</h3>
             <div class="button-row">
-                <button class="btn-glass" id="btn-phase-new">🌑 Nueva</button>
-                <button class="btn-glass" id="btn-phase-first">🌓 Creciente</button>
-                <button class="btn-glass" id="btn-phase-full">🌕 Llena</button>
-                <button class="btn-glass" id="btn-phase-third">🌗 Menguante</button>
+                <button class="btn-glass" id="btn-phase-new">Nueva</button>
+                <button class="btn-glass" id="btn-phase-first">Creciente</button>
+                <button class="btn-glass" id="btn-phase-full">Llena</button>
+                <button class="btn-glass" id="btn-phase-third">Menguante</button>
             </div>
         </div>
 
+        <!-- Capas y Entorno (Toggles independientes) -->
         <div class="control-group">
             <h3>Capas y Entorno</h3>
             <div class="button-column">
-                <button class="btn-glass" id="btn-toggle-stars">🌌 Alternar Estrellas</button>
-                <button class="btn-glass" id="btn-toggle-magnet">⚡ Alternar Magnetosfera</button>
-                <button class="btn-glass" id="btn-toggle-wind">☀️ Alternar Radiación Solar</button>
-                <button class="btn-glass" id="btn-toggle-orbits">🪐 Alternar Órbitas</button>
+                <button class="btn-glass" id="btn-toggle-stars">Alternar Estrellas</button>
+                <button class="btn-glass" id="btn-toggle-magnet">Alternar Campo Geomagnético</button>
+                <button class="btn-glass" id="btn-toggle-wind">Alternar Viento Solar</button>
+                <button class="btn-glass" id="btn-toggle-orbits">Alternar Órbitas</button>
             </div>
         </div>
 
         <div class="info-footer">
             <div class="info-item">
                 <span class="info-label">Interacción Solar:</span>
-                <span class="info-val">Viento Solar (Ámbar) • Bow Shock Incandescente • Magnetosfera (Azul)</span>
+                <span class="info-val">Viento Solar (Ámbar) • Bow Shock • Campo Dipolar WMM (Azul)</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Interacción:</span>
+                <span class="info-label">Interacción 3D:</span>
                 <span class="info-val">Arrastra para rotar • Rueda para zoom</span>
             </div>
         </div>

@@ -220,24 +220,47 @@ export class Magnetosphere {
                 [-1, 1].forEach(side => {
                     const y0 = r0 * side;
                     const points = [];
-                    const numSteps = 70;
+                    const numSteps = 120;
+
+                    // El Sol está en el centro (0,0,0) del sistema, a distancia 65 de la Tierra.
+                    // En coordenadas locales de la Tierra (donde -Z apunta hacia el Sol):
+                    // El centro del Sol está en z = -65.0.
+                    // El radio del Sol es 12.0.
+                    // Por lo tanto, la superficie del Sol orientada a la Tierra está exactamente en z = -53.0.
+                    const sunCenterDist = 65.0;
+                    const sunRadius = 12.0;
+
+                    // Ajustar el radio en la superficie del Sol para que emerja de su fotosfera
+                    const rSun = Math.min(11.4, Math.abs(y0) * 0.55);
+                    const zStart = -sunCenterDist + Math.sqrt(Math.max(0.1, sunRadius * sunRadius - rSun * rSun));
+
+                    // Las líneas viajan desde la superficie del Sol (z ~ -53) hasta el final de la magnetocola (z = +38)
+                    const zEnd = 38.0;
 
                     for (let i = 0; i <= numSteps; i++) {
                         const t = i / numSteps;
-                        // z viaja desde el lado del Sol (z = -30) hasta la cola (z = +35)
-                        const z = -28.0 + t * 65.0;
+                        const z = zStart + t * (zEnd - zStart);
 
-                        // Deflexión aerodinámica / hidrodinámica alrededor del obstáculo magnético:
-                        // Obstáculo centrado en el frente diurno con standoff = 6.2
+                        // Transición suave desde el radio en la superficie del Sol hasta el radio interplanetario y la deflexión
+                        let currentR;
                         const standoff = 6.2;
-                        let deflection = 0;
-                        if (z > -standoff - 5.0) {
-                            const obstacleRadius = Math.sqrt(Math.max(0.01, (z + standoff + 4.0) * 8.0));
-                            // Deflexión que empuja las líneas hacia afuera suavemente
-                            deflection = (obstacleRadius * obstacleRadius) / (r0 + obstacleRadius * 0.6);
+
+                        if (z < -14.0) {
+                            // Tramo interplanetario entre el Sol y la Tierra:
+                            // Las líneas emergen radialmente del Sol y se canalizan hacia la Tierra
+                            const sunProgress = (z - zStart) / (-14.0 - zStart);
+                            currentR = THREE.MathUtils.lerp(rSun, Math.abs(y0), Math.min(1.0, sunProgress * 1.2));
+                        } else {
+                            // Tramo de choque con la magnetosfera terrestre:
+                            // Deflexión aerodinámica/hidrodinámica alrededor de la cavidad magnética
+                            let deflection = 0;
+                            if (z > -standoff - 5.0) {
+                                const obstacleRadius = Math.sqrt(Math.max(0.01, (z + standoff + 4.0) * 8.0));
+                                deflection = (obstacleRadius * obstacleRadius) / (r0 + obstacleRadius * 0.55);
+                            }
+                            currentR = Math.abs(y0) + deflection * 0.75;
                         }
 
-                        const currentR = Math.abs(y0) + deflection * 0.75;
                         const x = Math.sign(y0) * currentR;
                         const y = 0;
 
@@ -246,11 +269,11 @@ export class Magnetosphere {
 
                     const geom = new THREE.BufferGeometry().setFromPoints(points);
 
-                    // Color degradado: ámbar/naranja brillante en el choque, desvanecido lejos
+                    // Material brillante ámbar/oro que emerge visiblemente desde el Sol
                     const mat = new THREE.LineBasicMaterial({
                         color: 0xff8811,
                         transparent: true,
-                        opacity: 0.55 - (r0 / 25.0) * 0.28,
+                        opacity: 0.62 - (r0 / 25.0) * 0.28,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false
                     });
@@ -272,8 +295,8 @@ export class Magnetosphere {
     }
 
     buildSolarRadiationParticles() {
-        // Enjambre de partículas de radiación solar viajando continuamente desde el Sol hacia la Tierra
-        const particleCount = 350;
+        // Enjambre denso de partículas de radiación solar viajando continuamente desde el Sol hacia la Tierra
+        const particleCount = 650;
         const positions = new Float32Array(particleCount * 3);
         const colors = new Float32Array(particleCount * 3);
 
@@ -287,13 +310,14 @@ export class Magnetosphere {
             this.solarParticles.push({
                 streamIdx: streamIdx,
                 progress: progress,
-                speed: 0.006 + Math.random() * 0.009
+                speed: 0.0035 + Math.random() * 0.007
             });
 
-            // Color: Amarillo oro a naranja intenso
+            // Color: Núcleo blanco-dorado a naranja solar brillante
+            const heat = Math.random();
             colors[i * 3] = 1.0;
-            colors[i * 3 + 1] = 0.6 + Math.random() * 0.35;
-            colors[i * 3 + 2] = 0.1;
+            colors[i * 3 + 1] = 0.5 + heat * 0.48;
+            colors[i * 3 + 2] = 0.15 + heat * 0.2;
         }
 
         const particleGeom = new THREE.BufferGeometry();
@@ -301,10 +325,10 @@ export class Magnetosphere {
         particleGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
         const particleMat = new THREE.PointsMaterial({
-            size: 0.42,
+            size: 0.5,
             vertexColors: true,
             transparent: true,
-            opacity: 0.9,
+            opacity: 0.92,
             blending: THREE.AdditiveBlending,
             depthWrite: false
         });
@@ -507,17 +531,26 @@ export class Magnetosphere {
         }
     }
 
-    toggle() {
-        this.visible = !this.visible;
-        this.container.visible = this.visible;
-        return this.visible;
+    // Alternar solo el campo magnético de la Tierra (sin afectar el viento solar)
+    toggleGeomagneticField() {
+        this.geomagneticVisible = this.geomagneticVisible !== undefined ? !this.geomagneticVisible : false;
+        if (this.geoLinesGroup) this.geoLinesGroup.visible = this.geomagneticVisible;
+        if (this.vanAllenGroup) this.vanAllenGroup.visible = this.geomagneticVisible;
+        if (this.dipoleAxisGroup) this.dipoleAxisGroup.visible = this.geomagneticVisible;
+        if (this.boundaryGroup) this.boundaryGroup.visible = this.geomagneticVisible;
+        return this.geomagneticVisible;
     }
 
+    // Alternar solo el viento solar, radiación y bow shock (sin afectar el campo magnético de la Tierra)
     toggleSolarWind() {
-        this.solarWindVisible = !this.solarWindVisible;
-        this.streamlinesGroup.visible = this.solarWindVisible;
-        this.radiationPoints.visible = this.solarWindVisible;
-        this.bowShockMesh.visible = this.solarWindVisible;
+        this.solarWindVisible = this.solarWindVisible !== undefined ? !this.solarWindVisible : false;
+        if (this.streamlinesGroup) this.streamlinesGroup.visible = this.solarWindVisible;
+        if (this.radiationPoints) this.radiationPoints.visible = this.solarWindVisible;
+        if (this.bowShockMesh) this.bowShockMesh.visible = this.solarWindVisible;
         return this.solarWindVisible;
+    }
+
+    toggle() {
+        return this.toggleGeomagneticField();
     }
 }
