@@ -5,83 +5,162 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulador Orbital Realista: Sol - Tierra - Luna</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Fuente Inter / Roboto para interfaz limpia estilo PhET -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <canvas id="webgl-canvas"></canvas>
 
-    <!-- Barra Superior Izquierda para Ocultar/Mostrar el Panel -->
-    <div class="top-nav-bar">
-        <button id="btn-toggle-sidebar" class="btn-nav">
-            <span class="nav-icon-indicator"></span>
-            <span id="nav-toggle-text">Ocultar Panel</span>
-        </button>
-    </div>
+    <!-- Botón Minimalista Flotante Superior Izquierdo (Chevron) -->
+    <button id="btn-toggle-sidebar" class="btn-toggle-panel" title="Ocultar o mostrar panel de control" aria-label="Alternar panel">
+        <svg id="toggle-chevron" class="chevron-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+    </button>
 
-    <!-- Panel Lateral de Controles Glassmorphism -->
+    <!-- Panel Lateral de Controles Estilo PhET (Translúcido y Ligero) -->
     <div class="ui-container glass-panel" id="sidebar-panel">
         <div class="header-section">
             <span class="badge">Astrofísica 3D</span>
             <h1>Sol • Tierra • Luna</h1>
-            <p class="subtitle">Física orbital, ciclo lunar y magnetosfera con viento solar</p>
-        </div>
-
-        <!-- Control de Simulación (Pausa y Velocidad) -->
-        <div class="control-group">
-            <h3>Control Temporal</h3>
-            <div class="button-row" style="margin-bottom: 10px;">
-                <button class="btn-glass" id="btn-play-pause">Pausar</button>
-                <button class="btn-glass" id="btn-reset-speed">Reiniciar 1.0x</button>
-            </div>
-            <div class="slider-container">
-                <div class="slider-header">
-                    <span>Velocidad:</span>
-                    <span id="speed-label" class="slider-val">1.0x</span>
-                </div>
-                <input type="range" id="speed-slider" min="0.1" max="4.0" step="0.1" value="1.0" class="slider-input">
-            </div>
+            <p class="subtitle">Simulador orbital interactivo y física magnetosférica</p>
         </div>
         
-        <!-- Cámaras -->
+        <!-- Perspectiva de Referencia (Control Segmentado Científico) -->
         <div class="control-group">
-            <h3>Perspectiva de Cámara</h3>
-            <div class="button-row">
-                <button class="btn-glass active" id="btn-cam-global">Global (3 Cuerpos)</button>
-                <button class="btn-glass" id="btn-cam-sun">En el Sol</button>
-                <button class="btn-glass" id="btn-cam-earth">En la Tierra</button>
-                <button class="btn-glass" id="btn-cam-moon">En la Luna</button>
+            <h3>Perspectiva de Referencia</h3>
+            <div class="segmented-control" role="tablist">
+                <button class="segmented-btn active" id="btn-cam-global" data-mode="global" role="tab">Libre</button>
+                <button class="segmented-btn" id="btn-cam-sun" data-mode="sun" role="tab">Heliocéntrica</button>
+                <button class="segmented-btn" id="btn-cam-earth" data-mode="earth" role="tab">Geocéntrica</button>
+                <button class="segmented-btn" id="btn-cam-moon" data-mode="moon" role="tab">Selenocéntrica</button>
             </div>
         </div>
 
-        <!-- Fases Lunares con Pausa Automática -->
+        <!-- Ciclo Lunar (Fases Astronómicas Rigurosas con Pausa Automática) -->
         <div class="control-group">
             <h3>Ciclo Lunar</h3>
-            <div class="button-row">
-                <button class="btn-glass" id="btn-phase-new">Nueva</button>
-                <button class="btn-glass" id="btn-phase-first">Creciente</button>
-                <button class="btn-glass" id="btn-phase-full">Llena</button>
-                <button class="btn-glass" id="btn-phase-third">Menguante</button>
+            <div class="lunar-phase-grid">
+                <button class="btn-phase" id="btn-phase-new" data-phase="new">
+                    <span class="phase-title">Luna Nueva</span>
+                    <span class="phase-sub">0° • Conjunción</span>
+                </button>
+                <button class="btn-phase" id="btn-phase-first" data-phase="first">
+                    <span class="phase-title">Cuarto Creciente</span>
+                    <span class="phase-sub">90° • Cuadratura oriental</span>
+                </button>
+                <button class="btn-phase" id="btn-phase-full" data-phase="full">
+                    <span class="phase-title">Luna Llena</span>
+                    <span class="phase-sub">180° • Oposición</span>
+                </button>
+                <button class="btn-phase" id="btn-phase-third" data-phase="third">
+                    <span class="phase-title">Cuarto Menguante</span>
+                    <span class="phase-sub">270° • Cuadratura occidental</span>
+                </button>
             </div>
         </div>
 
-        <!-- Capas y Entorno (Toggles independientes) -->
+        <!-- Capas y Entorno (Toggle Switches Estilo iOS / Material) -->
         <div class="control-group">
             <h3>Capas y Entorno</h3>
-            <div class="button-column">
-                <button class="btn-glass" id="btn-toggle-stars">Alternar Estrellas</button>
-                <button class="btn-glass" id="btn-toggle-magnet">Alternar Campo Magnetico</button>
-                <button class="btn-glass" id="btn-toggle-wind">Alternar Viento Solar</button>
-                <button class="btn-glass" id="btn-toggle-orbits">Alternar Órbitas</button>
+            <div class="switch-list">
+                <label class="switch-item">
+                    <span class="switch-label">Estrellas de fondo</span>
+                    <div class="switch-toggle">
+                        <input type="checkbox" id="switch-stars" checked>
+                        <span class="switch-slider"></span>
+                    </div>
+                </label>
+                <label class="switch-item">
+                    <span class="switch-label">Campo Magnético</span>
+                    <div class="switch-toggle">
+                        <input type="checkbox" id="switch-magnet" checked>
+                        <span class="switch-slider"></span>
+                    </div>
+                </label>
+                <label class="switch-item">
+                    <span class="switch-label">Viento Solar</span>
+                    <div class="switch-toggle">
+                        <input type="checkbox" id="switch-wind" checked>
+                        <span class="switch-slider"></span>
+                    </div>
+                </label>
+                <label class="switch-item">
+                    <span class="switch-label">Órbitas</span>
+                    <div class="switch-toggle">
+                        <input type="checkbox" id="switch-orbits" checked>
+                        <span class="switch-slider"></span>
+                    </div>
+                </label>
             </div>
         </div>
 
         <div class="info-footer">
             <div class="info-item">
-                <span class="info-label">Interacción Solar:</span>
-                <span class="info-val">Viento Solar (Ámbar) • Bow Shock • Campo Dipolar WMM (Azul)</span>
-            </div>
-            <div class="info-item">
                 <span class="info-label">Interacción 3D:</span>
-                <span class="info-val">Arrastra para rotar • Rueda para zoom</span>
+                <span class="info-val">Clic izquierdo: orbitar • Clic derecho: panear • Rueda: zoom</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra Inferior Flotante de Control Temporal Estilo PhET -->
+    <div class="bottom-bar glass-panel" id="bottom-time-bar">
+        <button class="btn-bottom-icon" id="btn-play-pause" title="Pausar / Reanudar simulación" aria-label="Reproducir o pausar">
+            <svg id="icon-pause" class="svg-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16" rx="1.5"></rect>
+                <rect x="14" y="4" width="4" height="16" rx="1.5"></rect>
+            </svg>
+            <svg id="icon-play" class="svg-icon hidden" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <polygon points="6 4 19 12 6 20 6 4"></polygon>
+            </svg>
+        </button>
+
+        <button class="btn-bottom-icon" id="btn-reset-speed" title="Restablecer velocidad a 1.0x" aria-label="Restablecer velocidad">
+            <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+        </button>
+
+        <div class="bottom-slider-group">
+            <span class="bottom-slider-title">Velocidad:</span>
+            <input type="range" id="speed-slider" min="0.1" max="4.0" step="0.1" value="1.0" class="slider-input">
+            <span id="speed-label" class="bottom-slider-val">1.0x</span>
+        </div>
+    </div>
+
+    <!-- Botón Flotante Circular de Ayuda/Glosario (Material Design FAB) -->
+    <button id="btn-help-fab" class="fab-help" title="Abrir Glosario de Términos" aria-label="Ayuda y Glosario">?</button>
+
+    <!-- Modal de Glosario de Términos -->
+    <div id="modal-glossary" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-card glass-panel">
+            <div class="modal-header">
+                <h2 id="modal-title">Glosario de Términos</h2>
+                <button id="btn-close-modal" class="btn-close-modal" aria-label="Cerrar modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="glossary-item">
+                    <h4>Sistema Heliocéntrico</h4>
+                    <p>Perspectiva astronómica centrada en el Sol. Describe las órbitas de los planetas y cuerpos alrededor del centro gravitacional solar.</p>
+                </div>
+                <div class="glossary-item">
+                    <h4>Sistema Geocéntrico</h4>
+                    <p>Perspectiva astronómica centrada en la Tierra. Es la base de los sistemas de coordenadas celestes ecuatoriales y la observación terrestre.</p>
+                </div>
+                <div class="glossary-item">
+                    <h4>Sistema Selenocéntrico</h4>
+                    <p>Perspectiva centrada en la Luna. Útil para estudiar la mecánica de satélites lunares y la orientación del disco lunar hacia la Tierra.</p>
+                </div>
+                <div class="glossary-item">
+                    <h4>Elongación y Ciclo Sinódico</h4>
+                    <p>El ciclo lunar describe la posición angular de la Luna con respecto a la línea colineal Sol-Tierra: Luna Nueva (0°), Cuarto Creciente (90°), Luna Llena (180°) y Cuarto Menguante (270°).</p>
+                </div>
+                <div class="glossary-item">
+                    <h4>Magnetosfera y Viento Solar</h4>
+                    <p>La cavidad protectora generada por el campo geomagnético terrestre (modelos WMM/IGRF) que desvía el plasma ionizado del viento solar mediante un frente de choque (Bow Shock).</p>
+                </div>
             </div>
         </div>
     </div>

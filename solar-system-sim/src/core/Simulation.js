@@ -24,12 +24,13 @@ export class Simulation {
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
         this.camera.position.set(0, 60, 140);
 
-        // Controles de Órbita
+        // Controles de Órbita Libres e Interactivos
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
         this.controls.minDistance = 2;
         this.controls.maxDistance = 1500;
+        this.controls.screenSpacePanning = true;
 
         // Luz Ambiental para iluminar suavemente la cara nocturna
         this.ambientLight = new THREE.AmbientLight(0x223344, 0.8);
@@ -51,10 +52,18 @@ export class Simulation {
         // Manejo de Redimensión
         window.addEventListener('resize', this.onWindowResize.bind(this));
 
-        // Puntos de seguimiento de cámara
-        this.cameraTarget = new THREE.Vector3(0, 0, 0);
-        this.desiredCameraPos = null;
+        // Objeto actual de seguimiento dinámico (ej. Earth, Sun, Moon o null)
+        this.trackedEntity = null;
+        this.prevTargetPos = new THREE.Vector3(0, 0, 0);
+
+        // Animación suave de transición al cambiar de perspectiva
         this.isTransitioningCamera = false;
+        this.transitionProgress = 0;
+        this.transitionDuration = 0.8; // segundos
+        this.transitionStartCam = new THREE.Vector3();
+        this.transitionTargetCam = new THREE.Vector3();
+        this.transitionStartLook = new THREE.Vector3();
+        this.transitionTargetLook = new THREE.Vector3();
     }
 
     addEntity(entity) {
@@ -71,12 +80,28 @@ export class Simulation {
         return this.starsVisible;
     }
 
-    setCameraView(targetPos, cameraPos) {
-        this.cameraTarget.copy(targetPos);
-        if (cameraPos) {
-            this.desiredCameraPos = cameraPos.clone();
-            this.isTransitioningCamera = true;
-        }
+    /**
+     * Cambia el objetivo orbital de la cámara hacia una entidad o punto global,
+     * permitiendo que el usuario siga orbitando, haciendo zoom y paneando libremente.
+     * @param {Object|null} entity Objeto con getPosition() o null para vista libre
+     * @param {THREE.Vector3} relativeOffset Posición relativa de la cámara respecto al objeto
+     */
+    focusOnEntity(entity, relativeOffset) {
+        const targetWorldPos = entity ? entity.getPosition() : new THREE.Vector3(20, 0, 0);
+        const desiredCamPos = entity 
+            ? targetWorldPos.clone().add(relativeOffset) 
+            : new THREE.Vector3(0, 70, 145);
+
+        this.trackedEntity = entity;
+        this.prevTargetPos.copy(targetWorldPos);
+
+        // Iniciar transición suave
+        this.isTransitioningCamera = true;
+        this.transitionProgress = 0;
+        this.transitionStartCam.copy(this.camera.position);
+        this.transitionTargetCam.copy(desiredCamPos);
+        this.transitionStartLook.copy(this.controls.target);
+        this.transitionTargetLook.copy(targetWorldPos);
     }
 
     onWindowResize() {
@@ -85,17 +110,37 @@ export class Simulation {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    update() {
-        // Suavizado de la posición deseada de la cámara
-        if (this.isTransitioningCamera && this.desiredCameraPos) {
-            this.camera.position.lerp(this.desiredCameraPos, 0.05);
-            if (this.camera.position.distanceTo(this.desiredCameraPos) < 0.2) {
+    update(delta = 0.016) {
+        if (this.isTransitioningCamera) {
+            this.transitionProgress += delta / this.transitionDuration;
+            const t = Math.min(1.0, this.transitionProgress);
+            // Curva easeInOutCubic
+            const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+            this.camera.position.lerpVectors(this.transitionStartCam, this.transitionTargetCam, ease);
+            this.controls.target.lerpVectors(this.transitionStartLook, this.transitionTargetLook, ease);
+
+            if (t >= 1.0) {
                 this.isTransitioningCamera = false;
+                if (this.trackedEntity) {
+                    this.prevTargetPos.copy(this.trackedEntity.getPosition());
+                }
+            }
+        } else if (this.trackedEntity) {
+            // El usuario tiene control manual total de órbita y zoom.
+            // Si el planeta se mueve en su órbita, trasladamos la cámara y el target
+            // manteniendo exactamente el ángulo y distancia relativa que el usuario haya fijado con el ratón.
+            const currentPos = this.trackedEntity.getPosition();
+            const deltaPos = currentPos.clone().sub(this.prevTargetPos);
+
+            if (deltaPos.lengthSq() > 0.000001) {
+                this.controls.target.add(deltaPos);
+                this.camera.position.add(deltaPos);
+                this.prevTargetPos.copy(currentPos);
             }
         }
 
-        // Suavizado del punto objetivo (LookAt)
-        this.controls.target.lerp(this.cameraTarget, 0.08);
+        // Siempre actualizar OrbitControls para permitir interacción libre continua
         this.controls.update();
 
         this.renderer.render(this.scene, this.camera);

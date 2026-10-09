@@ -45,6 +45,7 @@ export class Moon {
         this.container.add(this.orbitLine);
 
         this.currentAngle = 0;
+        this.phaseAngle = 0; // Ángulo de fase sinódica respecto al vector Sol-Tierra
     }
 
     update(time) {
@@ -55,16 +56,27 @@ export class Moon {
         // Posicionar el anillo de órbita alrededor de la Tierra
         this.orbitLine.position.copy(earthPos);
 
-        // Calcular posición orbital de la Luna
+        // Calcular ángulo absoluto de la Luna en el plano orbital
         this.currentAngle = time * this.orbitalSpeed;
         const x = earthPos.x + Math.cos(this.currentAngle) * this.orbitRadius;
         const z = earthPos.z + Math.sin(this.currentAngle) * this.orbitRadius;
-        const y = earthPos.y; // Puede agregarse inclinación si se desea
+        const y = earthPos.y;
 
         this.mesh.position.set(x, y, z);
 
-        // Rotación lunar sobre su propio eje
-        this.mesh.rotation.y += this.rotationSpeed;
+        // Ángulo orbital de la Tierra respecto al Sol
+        const earthAngle = Math.atan2(earthPos.z, earthPos.x);
+
+        // Geometría astronómica de fase sinódica:
+        // phaseAngle = 0° (Luna entre Tierra y Sol - Luna Nueva)
+        // phaseAngle = 90° (Cuarto Creciente - cuadratura oriental)
+        // phaseAngle = 180° (Luna Llena - Tierra entre Sol y Luna)
+        // phaseAngle = 270° (Cuarto Menguante - cuadratura occidental)
+        const relAngle = (this.currentAngle - earthAngle + Math.PI) % (Math.PI * 2);
+        this.phaseAngle = (relAngle + Math.PI * 2) % (Math.PI * 2);
+
+        // Rotación lunar sobre su propio eje (rotación sincrónica con su órbita)
+        this.mesh.rotation.y = this.currentAngle;
     }
 
     getPosition() {
