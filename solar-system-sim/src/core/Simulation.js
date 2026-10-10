@@ -24,10 +24,10 @@ export class Simulation {
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
         this.camera.position.set(0, 60, 140);
 
-        // Controles de Órbita Libres e Interactivos
+        // Controles de Órbita Libres e Interactivos con mayor amortiguamiento (damping suave)
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
+        this.controls.dampingFactor = 0.12;
         this.controls.minDistance = 2;
         this.controls.maxDistance = 1500;
         this.controls.screenSpacePanning = true;

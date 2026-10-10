@@ -22,7 +22,7 @@ export class TimeController {
     }
 
     setSpeedMultiplier(multiplier) {
-        this.speedMultiplier = Math.max(0, Math.min(10, parseFloat(multiplier)));
+        this.speedMultiplier = Math.max(0, Math.min(100, parseFloat(multiplier)));
     }
 
     togglePause() {

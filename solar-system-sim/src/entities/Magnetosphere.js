@@ -269,11 +269,11 @@ export class Magnetosphere {
 
                     const geom = new THREE.BufferGeometry().setFromPoints(points);
 
-                    // Material brillante ámbar/oro que emerge visiblemente desde el Sol
+                    // Material suave ámbar/oro con opacidad promedio ~45%
                     const mat = new THREE.LineBasicMaterial({
                         color: 0xff8811,
                         transparent: true,
-                        opacity: 0.62 - (r0 / 25.0) * 0.28,
+                        opacity: 0.45 - (r0 / 25.0) * 0.18,
                         blending: THREE.AdditiveBlending,
                         depthWrite: false
                     });
@@ -325,10 +325,10 @@ export class Magnetosphere {
         particleGeom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
         const particleMat = new THREE.PointsMaterial({
-            size: 0.5,
+            size: 0.45,
             vertexColors: true,
             transparent: true,
-            opacity: 0.92,
+            opacity: 0.45,
             blending: THREE.AdditiveBlending,
             depthWrite: false
         });
@@ -343,10 +343,10 @@ export class Magnetosphere {
         this.lineGeometries = [];
 
         const L_shells = [
-            { L: 3.2, opacity: 0.95, color: 0x00d0ff }, // Lazos cercanos intensos
-            { L: 4.4, opacity: 0.85, color: 0x0099ff },
-            { L: 5.8, opacity: 0.65, color: 0x0066ff },
-            { L: 7.4, opacity: 0.45, color: 0x0033cc }
+            { L: 3.2, opacity: 0.48, color: 0x00d0ff }, // Lazos cercanos atenuados (~45%)
+            { L: 4.4, opacity: 0.42, color: 0x0099ff },
+            { L: 5.8, opacity: 0.35, color: 0x0066ff },
+            { L: 7.4, opacity: 0.25, color: 0x0033cc }
         ];
 
         const numMeridians = 12;
@@ -448,7 +448,7 @@ export class Magnetosphere {
         this.fieldGroup.add(this.dipoleAxisGroup);
     }
 
-    update(time) {
+    update(time, deltaSeconds = 0.016, reducedMotion = false) {
         if (!this.earth) return;
 
         // 1. Posición: Centrada de manera exacta en la Tierra en cada instante orbital
@@ -458,18 +458,19 @@ export class Magnetosphere {
         // 2. FÍSICA Y ORIENTACIÓN DEL VIENTO SOLAR:
         // El Sol está en (0,0,0). La Tierra está en earthPos.
         // Vector desde el Sol hacia la Tierra = sunToEarth.
-        // La radiación solar viene en la dirección +sunToEarth.
-        // La cara delantera (Bow Shock incandescente) mira hacia el Sol: local -Z.
-        // La cola se extiende alejándose del Sol: local +Z.
         const sunToEarth = earthPos.clone().normalize();
         const lookTarget = earthPos.clone().add(sunToEarth.clone().multiplyScalar(20));
         
         // Orientar todo el grupo del campo y viento solar para que su eje Z coincida con el rayo Sol-Tierra
         this.fieldGroup.lookAt(lookTarget);
 
-        // 3. Actualizar tiempo del shader del Bow Shock
+        // 3. Actualizar tiempo del shader del Bow Shock (tiempo real desacoplado de la velocidad de simulación)
+        if (!this.plasmaTime) this.plasmaTime = 0;
+        if (!reducedMotion) {
+            this.plasmaTime += deltaSeconds * 1.5;
+        }
         if (this.bowShockMaterial && this.bowShockMaterial.uniforms.uTime) {
-            this.bowShockMaterial.uniforms.uTime.value = time;
+            this.bowShockMaterial.uniforms.uTime.value = this.plasmaTime;
         }
 
         // 4. Deformar las líneas dipolares internas: comprimidas en el frente, extendidas en la cola
@@ -485,10 +486,8 @@ export class Magnetosphere {
 
                 // Deformación a lo largo del eje local Z (alineado con el vector Sol-Tierra):
                 if (pz > 0.2) {
-                    // Lado nocturno: estiramiento hacia la magnetocola (+Z)
                     pz += Math.pow(pz / pt.L, 1.7) * (pt.L * 0.65);
                 } else if (pz < -0.2) {
-                    // Lado diurno: compresión hacia la Tierra (-Z)
                     pz *= 0.72;
                     px *= 0.88;
                 }
@@ -500,13 +499,20 @@ export class Magnetosphere {
             item.geometry.attributes.position.needsUpdate = true;
         });
 
-        // 5. Mover las partículas de radiación solar a lo largo de las líneas de corriente
-        if (this.radiationPoints && this.solarParticles) {
+        // 5. Partículas de radiación solar: velocidad constante en tiempo real independiente del multiplicador orbital
+        // En modo 'reducedMotion', se ocultan o congelan para evitar mareos visuales
+        if (this.radiationPoints) {
+            this.radiationPoints.visible = this.solarWindVisible && !reducedMotion;
+        }
+
+        if (this.radiationPoints && this.solarParticles && !reducedMotion) {
             const pPositions = this.radiationPoints.geometry.attributes.position.array;
+            // Factor de paso en base a 60 fps normales (~0.016 s)
+            const stepFactor = deltaSeconds / 0.016;
 
             for (let i = 0; i < this.solarParticles.length; i++) {
                 const sp = this.solarParticles[i];
-                sp.progress += sp.speed;
+                sp.progress += sp.speed * stepFactor;
                 if (sp.progress >= 1.0) sp.progress = 0.0;
 
                 const stream = this.streamlinesData[sp.streamIdx];

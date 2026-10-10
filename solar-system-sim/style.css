@@ -1,16 +1,68 @@
+/* ==========================================================================
+   SISTEMA DE DISEÑO: INSTRUMENTO CIENTÍFICO DE OBSERVATORIO (ASTRO-SPEC 2.1)
+   Inspiración: Stellarium, Celestia, NASA Eyes, Observable, hardware de laboratorio
+   ========================================================================== */
+
+:root {
+    /* Superficies y Neutros Cálidos/Técnicos (Near-black con tinte oliva muy leve) */
+    --bg-base: #0b0d0c;
+    --bg-panel: rgba(18, 20, 19, 0.94);
+    --bg-panel-solid: #131514;
+    --bg-elevated: rgba(28, 31, 29, 0.75);
+    --bg-hover: rgba(255, 255, 255, 0.05);
+    --bg-active: rgba(255, 255, 255, 0.09);
+
+    /* Bordes y Líneas de Calibración (Hairline dividers de alta precisión) */
+    --border-hairline: 1px solid rgba(255, 255, 255, 0.08);
+    --border-subtle: 1px solid rgba(255, 255, 255, 0.15);
+    --border-focus: 1px solid rgba(212, 175, 55, 0.65);
+
+    /* Tipografía y Jerarquía */
+    --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+
+    /* Colores de Texto (Contraste AA asegurado: >= 4.5:1 sobre fondo #0b0d0c y #131514) */
+    --text-primary: #e8e6e1;        /* Hueso cálido legible (contraste > 12:1) */
+    --text-secondary: #b5bab6;      /* Gris cálido secundario (contraste > 7:1) */
+    --text-tertiary: #8a918b;       /* Muted para metadatos (contraste > 4.5:1 - AA) */
+    --text-mono-val: #e0e5e1;       /* Monospace para números de precisión (contraste > 11:1) */
+
+    /* Acentos Disciplinados de Instrumentación */
+    --accent-gold: #d4af37;         /* Ámbar / Latón técnico para valores activos */
+    --accent-gold-subtle: rgba(212, 175, 55, 0.15);
+    --accent-gold-hover: #e5c358;
+
+    /* Capas Espectrales (Swatches identificadores funcionales) */
+    --swatch-geomag: #38bdf8;       /* Azul magnetosférico polar */
+    --swatch-wind: #fbbf24;         /* Ámbar radiación solar */
+    --swatch-orbits: #94a3b8;       /* Gris trayectoria kepleriana */
+    --swatch-stars: #f1f5f9;        /* Blanco estelar */
+
+    /* Radios y Espaciado Modular */
+    --radius-panel: 8px;
+    --radius-control: 4px;
+
+    /* Sombras Físicas (Sin brillos difusos AI, sombra de placa mecánica) */
+    --shadow-instrument: 0 10px 30px rgba(0, 0, 0, 0.65), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+/* Reset y base */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
     user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 body {
     overflow: hidden;
-    background-color: #000;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    color: #e2e8f0;
-    -webkit-font-smoothing: antialiased;
+    background-color: var(--bg-base);
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    font-size: 13px;
+    line-height: 1.45;
 }
 
 #webgl-canvas {
@@ -22,537 +74,941 @@ body {
     z-index: 1;
 }
 
-/* Glassmorphism Sutil Estilo PhET */
-.glass-panel {
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+/* ==========================================================================
+   HUD TELEMETRÍA SUPERPUESTA SOBRE LA ESCENA (Sin caja, puro mono técnico)
+   ========================================================================== */
+.hud-telemetry {
+    position: fixed;
+    top: 20px;
+    right: 24px;
+    z-index: 25;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.8);
+    font-variant-numeric: tabular-nums;
 }
 
-/* Botón Minimalista Integrado en la Esquina Superior Izquierda (Chevron) */
+.hud-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.hud-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: lowercase;
+    letter-spacing: 0.2px;
+}
+
+.hud-value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-mono-val);
+    min-width: 85px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+#readout-psi {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   BOTÓN DE ANCLAJE LATERAL (Ubicación libre y sin solapamiento)
+   ========================================================================== */
 .btn-toggle-panel {
     position: fixed;
     top: 16px;
     left: 16px;
-    z-index: 30;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #38bdf8;
+    z-index: 45;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-control);
+    background: var(--bg-panel-solid);
+    border: var(--border-subtle);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .btn-toggle-panel:hover {
-    background: rgba(30, 41, 59, 0.85);
-    border-color: rgba(56, 189, 248, 0.5);
-    color: #7dd3fc;
-    box-shadow: 0 0 16px rgba(56, 189, 248, 0.3);
-    transform: scale(1.04);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .chevron-icon {
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-toggle-panel.collapsed .chevron-icon {
     transform: rotate(180deg);
 }
 
-/* Panel Lateral Glassmorphism Sutil PhET */
-.ui-container {
+/* ==========================================================================
+   PANEL DE CONTROL PRINCIPAL (Sin cajas internas, solo hairlines y espaciado)
+   ========================================================================== */
+.ui-panel {
     position: absolute;
-    top: 62px;
-    left: 16px;
-    z-index: 20;
-    width: 320px;
-    padding: 18px;
-    border-radius: 16px;
+    top: 16px;
+    left: 58px;
+    z-index: 35;
+    width: 300px;
+    max-height: calc(100vh - 84px);
+    background: var(--bg-panel);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: var(--border-hairline);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-instrument);
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    max-height: calc(100vh - 150px);
+    gap: 12px;
+    padding: 14px 16px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     scrollbar-width: thin;
-    scrollbar-color: rgba(56, 189, 248, 0.25) transparent;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
     transform: translateX(0);
     opacity: 1;
 }
 
-.ui-container.collapsed {
-    transform: translateX(calc(-100% - 30px));
+.ui-panel.collapsed {
+    transform: translateX(calc(-100% - 70px));
     opacity: 0;
     pointer-events: none;
 }
 
-.header-section {
+/* Encabezado sin badges artificiales */
+.panel-header {
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 2px;
     padding-bottom: 10px;
+    border-bottom: var(--border-hairline);
 }
 
-.badge {
-    align-self: flex-start;
-    font-size: 0.62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    padding: 3px 8px;
-    border-radius: 20px;
-    background: rgba(56, 189, 248, 0.15);
-    color: #38bdf8;
-    border: 1px solid rgba(56, 189, 248, 0.3);
-}
-
-h1 {
-    font-size: 1.12rem;
+.panel-title {
+    font-size: 13.5px;
     font-weight: 600;
-    letter-spacing: 0.3px;
-    color: #f8fafc;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.1px;
+    color: var(--text-primary);
 }
 
-.subtitle {
-    font-size: 0.71rem;
-    color: #94a3b8;
+.panel-subtitle {
+    font-size: 11.5px;
+    color: var(--text-secondary);
     line-height: 1.35;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-h3 {
-    font-size: 0.68rem;
-    color: #7dd3fc;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 1.1px;
-    font-weight: 700;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-.control-group {
+/* Secciones separadas únicamente por hairlines y espacio */
+.instrument-section {
     display: flex;
     flex-direction: column;
+    gap: 8px;
+    padding-bottom: 11px;
+    border-bottom: var(--border-hairline);
 }
 
-/* Control Segmentado (Segmented Control) Científico */
-.segmented-control {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 5px;
-    background: rgba(15, 23, 42, 0.6);
-    padding: 4px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+.instrument-section:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
 }
 
-.segmented-btn {
-    padding: 7px 5px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 7px;
-    color: #94a3b8;
-    font-size: 0.72rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-}
-
-.segmented-btn:hover {
-    color: #f1f5f9;
-    background: rgba(255, 255, 255, 0.06);
-}
-
-.segmented-btn.active {
-    background: rgba(56, 189, 248, 0.25);
-    border-color: rgba(56, 189, 248, 0.6);
-    color: #38bdf8;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-}
-
-/* Fases Lunares (Grid Científico) */
-.lunar-phase-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 7px;
-}
-
-.btn-phase {
-    background: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #cbd5e1;
-    padding: 8px 9px;
-    border-radius: 9px;
-    cursor: pointer;
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.btn-phase:hover {
-    background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-}
-
-.btn-phase:active {
-    transform: scale(0.97);
-}
-
-.btn-phase.active {
-    background: rgba(56, 189, 248, 0.2);
-    border-color: rgba(56, 189, 248, 0.6);
-    color: #38bdf8;
-    box-shadow: 0 0 14px rgba(56, 189, 248, 0.2);
-}
-
-.phase-title {
-    font-size: 0.74rem;
-    font-weight: 600;
-}
-
-.phase-sub {
-    font-size: 0.61rem;
-    color: #64748b;
-    font-weight: 400;
-}
-
-.btn-phase.active .phase-sub {
-    color: #7dd3fc;
-}
-
-/* Toggle Switches Estilo iOS / Material */
-.switch-list {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    padding: 7px 11px;
-}
-
-.switch-item {
+/* Etiquetas de sección en minúsculas/capitalización normal (12-13px, gris cálido, sin tracking) */
+.section-label {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 5px 0;
-    cursor: pointer;
-}
-
-.switch-item:not(:last-child) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.switch-label {
-    font-size: 0.75rem;
-    color: #cbd5e1;
+    font-size: 12.5px;
     font-weight: 500;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    color: var(--text-secondary);
+    text-transform: none;
+    letter-spacing: normal;
 }
 
-.switch-toggle {
-    position: relative;
-    width: 34px;
-    height: 18px;
+.section-subtext {
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--accent-gold);
 }
 
-.switch-toggle input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+.section-shortcut-hint {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
 }
 
-.switch-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 20px;
-    transition: 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.switch-slider:before {
-    position: absolute;
-    content: "";
-    height: 12px;
-    width: 12px;
-    left: 2px;
-    bottom: 2px;
-    background-color: #94a3b8;
-    border-radius: 50%;
-    transition: 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.switch-toggle input:checked + .switch-slider {
-    background-color: rgba(56, 189, 248, 0.35);
-    border-color: rgba(56, 189, 248, 0.7);
-}
-
-.switch-toggle input:checked + .switch-slider:before {
-    transform: translateX(16px);
-    background-color: #38bdf8;
-    box-shadow: 0 0 6px rgba(56, 189, 248, 0.7);
-}
-
-/* Pie de Información */
-.info-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 10px;
+/* ==========================================================================
+   SECCIÓN 1: CICLO LUNAR FUSIONADO (Dial continuo + miniaturas como atajos)
+   ========================================================================== */
+.lunar-fused-control {
     display: flex;
     flex-direction: column;
+    gap: 8px;
+}
+
+.dial-track-wrap {
+    width: 100%;
+    padding: 4px 0;
+}
+
+.instrument-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.instrument-range:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.instrument-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-gold);
+    border: 2px solid var(--bg-base);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    cursor: grab;
+    transition: transform 0.1s ease;
+}
+
+.instrument-range::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.instrument-range::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-gold);
+    border: 2px solid var(--bg-base);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    cursor: grab;
+}
+
+/* Fila de atajos de fase (sin cajas contenedoras pesadas) */
+.phase-tick-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 4px;
 }
 
-.info-item {
+.phase-tick-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    padding: 4px 2px;
     display: flex;
     flex-direction: column;
-    gap: 1px;
-}
-
-.info-label {
-    font-size: 0.62rem;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #64748b;
-}
-
-.info-val {
-    font-size: 0.69rem;
-    color: #94a3b8;
-}
-
-/* ======================================================== */
-/* BARRA INFERIOR DE CONTROL TEMPORAL ESTILO PHET           */
-/* ======================================================== */
-.bottom-bar {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 25;
-    display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px 18px;
-    border-radius: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
-}
-
-.btn-bottom-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #f1f5f9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: 3px;
     cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    color: var(--text-secondary);
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.btn-bottom-icon:hover {
-    background: rgba(56, 189, 248, 0.25);
-    border-color: rgba(56, 189, 248, 0.6);
-    color: #38bdf8;
-    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
-    transform: scale(1.06);
+.phase-tick-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
 }
 
-.btn-bottom-icon:active {
-    transform: scale(0.95);
+.phase-tick-btn.active {
+    background: var(--accent-gold-subtle);
+    border-color: var(--accent-gold);
+    color: var(--text-primary);
 }
 
-.btn-bottom-icon.paused {
-    background: rgba(239, 68, 68, 0.22);
-    border-color: rgba(239, 68, 68, 0.6);
-    color: #ef4444;
+.phase-svg {
+    display: block;
 }
 
-.bottom-slider-group {
+.moon-disk-bg {
+    fill: #161817;
+    stroke: rgba(255, 255, 255, 0.18);
+    stroke-width: 1;
+}
+
+.moon-shadow {
+    fill: #090b0a;
+}
+
+.moon-lit {
+    fill: #f3f4f6;
+}
+
+.phase-tick-deg {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-tertiary);
+}
+
+.phase-tick-btn.active .phase-tick-deg {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.phase-tick-label {
+    font-size: 10.5px;
+    font-weight: 500;
+    line-height: 1;
+}
+
+/* ==========================================================================
+   SECCIÓN 2: CONTROL SEGMENTADO DE PERSPECTIVAS
+   ========================================================================== */
+.segmented-control {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 2px;
+    border-radius: var(--radius-control);
+}
+
+.segmented-btn {
+    background: transparent;
+    border: none;
+    padding: 6px 2px;
+    border-radius: 3px;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s ease, background 0.15s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.segmented-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.segmented-btn.active {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+}
+
+.segmented-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0px;
+    left: 15%;
+    right: 15%;
+    height: 2px;
+    background: var(--accent-gold);
+    border-radius: 2px;
+}
+
+/* ==========================================================================
+   SECCIÓN 3: CAPAS FÍSICAS (Filas de una sola línea sin cajas)
+   ========================================================================== */
+.layer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.layer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 4px;
+    border-radius: var(--radius-control);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.layer-row:hover {
+    background: var(--bg-hover);
+}
+
+.layer-identity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.color-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.swatch-geomag { background: var(--swatch-geomag); }
+.swatch-wind   { background: var(--swatch-wind); }
+.swatch-orbits { background: var(--swatch-orbits); }
+.swatch-stars  { background: var(--swatch-stars); }
+.swatch-elongation { background: var(--accent-gold); }
+.swatch-motion { background: #a855f7; }
+
+.layer-name {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-primary);
+}
+
+.layer-actions {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding-left: 6px;
 }
 
-.bottom-slider-title {
-    font-size: 0.74rem;
-    font-weight: 500;
-    color: #cbd5e1;
-    white-space: nowrap;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+.key-hint {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    padding: 1px 4px;
+    min-width: 16px;
+    text-align: center;
 }
 
-.slider-input {
-    width: 110px;
-    height: 5px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.18);
+/* Checkbox cuadrado fino de alta precisión técnica */
+.fine-checkbox {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 2px;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
     outline: none;
-    cursor: pointer;
-    accent-color: #38bdf8;
+    transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.bottom-slider-val {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #38bdf8;
-    min-width: 32px;
+.fine-checkbox:hover {
+    border-color: rgba(255, 255, 255, 0.6);
 }
 
-.svg-icon {
-    display: block;
-    pointer-events: none;
+.fine-checkbox:checked {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
 }
 
-.svg-icon.hidden {
-    display: none;
+.fine-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    width: 3px;
+    height: 6px;
+    border: solid #0b0d0c;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
 }
 
-/* ======================================================== */
-/* BOTÓN FLOTANTE FAB DE AYUDA Y MODAL DE GLOSARIO          */
-/* ======================================================== */
-.fab-help {
+/* ==========================================================================
+   BOTÓN FLOTANTE '?' (36-40px, icono lineal, mismo estilo de la barra)
+   Anclado abajo a la derecha, por encima de la barra inferior, con margen de 16px
+   ========================================================================== */
+.btn-help-fab {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 25;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(56, 189, 248, 0.4);
-    color: #38bdf8;
-    font-size: 1.15rem;
-    font-weight: 700;
+    bottom: 64px; /* 48px altura de barra + 16px de margen */
+    right: 16px;
+    z-index: 35;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-control);
+    background: var(--bg-panel-solid);
+    border: var(--border-subtle);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.65);
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
-.fab-help:hover {
-    background: rgba(56, 189, 248, 0.25);
-    border-color: rgba(56, 189, 248, 0.8);
-    box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
-    transform: scale(1.08);
+.btn-help-fab:hover {
+    background: var(--bg-elevated);
+    color: var(--accent-gold);
+    border-color: rgba(212, 175, 55, 0.5);
+    transform: translateY(-1px);
 }
 
-/* Modal de Glosario */
-.modal-overlay {
+.btn-help-fab:active {
+    transform: translateY(0);
+}
+
+/* ==========================================================================
+   BARRA INFERIOR DE CRONOMETRÍA Y VELOCIDAD (Estación base grounded)
+   ========================================================================== */
+.bottom-timebar {
     position: fixed;
-    top: 0;
+    bottom: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 50;
+    right: 0;
+    height: 48px;
+    z-index: 30;
+    background: var(--bg-panel-solid);
+    border-top: var(--border-hairline);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 1;
-    transition: opacity 0.25s ease;
+    gap: 16px;
+    padding: 0 20px;
 }
 
-.modal-overlay.hidden {
-    display: none;
+/* Fecha y hora simulada en mono como elemento principal */
+.timebar-simdate {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.simdate-k {
+    font-size: 11.5px;
+    color: var(--text-tertiary);
+}
+
+.simdate-v {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-mono-val);
+    letter-spacing: -0.2px;
+    min-width: 145px;
+    font-variant-numeric: tabular-nums;
+}
+
+.speed-readout-mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-gold);
+    min-width: 42px;
+    font-variant-numeric: tabular-nums;
+}
+
+.speed-high-alert {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: #eab308;
+    background: rgba(234, 179, 8, 0.12);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-left: 2px;
+    letter-spacing: 0.2px;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.timebar-transport {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-transport {
+    background: transparent;
+    border: var(--border-hairline);
+    border-radius: var(--radius-control);
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-transport:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-transport-primary {
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.btn-transport-primary:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.btn-transport.paused {
+    color: var(--accent-gold);
+}
+
+.btn-reset-cadence {
+    width: auto;
+    padding: 0 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.timebar-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Control logarítmico con un ÚNICO valor de velocidad en mono */
+.timebar-speed-unit {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.speed-caption {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+}
+
+.speed-slider-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 140px;
+}
+
+.time-range {
+    height: 3px;
+}
+
+.speed-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 8px;
+    color: var(--text-tertiary);
+}
+
+.speed-ticks .tick.active {
+    color: var(--accent-gold);
+    font-weight: 600;
+}
+
+.speed-readout-mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-gold);
+    min-width: 42px;
+}
+
+/* ==========================================================================
+   MODAL DE DOCUMENTACIÓN Y CONSOLA DE REFERENCIA
+   ========================================================================== */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    transition: opacity 0.2s ease;
+}
+
+.modal-backdrop.hidden {
     opacity: 0;
     pointer-events: none;
 }
 
-.modal-card {
-    width: 90%;
-    max-width: 520px;
-    border-radius: 18px;
-    padding: 24px;
+.modal-console {
+    background: var(--bg-panel-solid);
+    border: var(--border-subtle);
+    border-radius: var(--radius-panel);
+    width: 100%;
+    max-width: 580px;
+    max-height: 85vh;
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px 12px 20px;
+    border-bottom: var(--border-hairline);
+    background: var(--bg-base);
+}
+
+.modal-console-header h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-console-sub {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.btn-close-console {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.btn-close-console:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+/* Barra de pestañas del modal (Tab Navbar estilo hardware/Stellarium) */
+.modal-nav-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 6px 16px 0 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: var(--border-hairline);
+}
+
+.modal-tab-btn {
+    background: transparent;
+    border: none;
+    padding: 8px 14px;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.modal-tab-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.modal-tab-btn.active {
+    color: var(--text-primary);
+    background: var(--bg-panel-solid);
+}
+
+.modal-tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent-gold);
+}
+
+.modal-console-body {
+    padding: 18px 20px;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 16px;
-    max-height: 80vh;
-    overflow-y: auto;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.85);
+    min-height: 280px;
 }
 
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 12px;
-}
-
-.modal-header h2 {
-    font-size: 1.15rem;
-    font-weight: 600;
-    color: #f8fafc;
-}
-
-.btn-close-modal {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    font-size: 1.5rem;
-    cursor: pointer;
-    line-height: 1;
-    transition: color 0.2s ease;
-}
-
-.btn-close-modal:hover {
-    color: #f8fafc;
-}
-
-.modal-body {
+.tab-pane {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
+    animation: tabFadeIn 0.15s ease-out;
 }
 
-.glossary-item h4 {
-    font-size: 0.84rem;
-    color: #38bdf8;
-    margin-bottom: 4px;
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.glossary-item p {
-    font-size: 0.77rem;
-    color: #cbd5e1;
-    line-height: 1.45;
+.manual-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.manual-section h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.manual-section p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.shortcuts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.shortcut-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: var(--border-hairline);
+    border-radius: var(--radius-control);
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.shortcut-item kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 3px;
+    padding: 2px 5px;
+    color: var(--text-primary);
+    flex-shrink: 0;
+}
+
+.formula-box {
+    background: rgba(0, 0, 0, 0.4);
+    border: var(--border-hairline);
+    border-radius: var(--radius-control);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.formula-box code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-mono-val);
+}
+
+.glossary-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.glossary-entry {
+    background: rgba(255, 255, 255, 0.02);
+    border: var(--border-hairline);
+    border-radius: var(--radius-control);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.glossary-term {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.glossary-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Utilidades */
+.hidden {
+    display: none !important;
+}
+
+/* ==========================================================================
+   ADAPTATIVIDAD MÓVIL Y REDUCED MOTION
+   ========================================================================== */
+@media (max-width: 680px) {
+    .ui-panel {
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-height: 55vh;
+        bottom: 56px;
+        top: auto;
+    }
+
+    .btn-toggle-panel {
+        top: auto;
+        bottom: 56px;
+        left: 12px;
+    }
+
+    .hud-telemetry {
+        top: 12px;
+        right: 12px;
+    }
+
+    .timebar-simdate {
+        display: none !important;
+    }
+
+    .speed-slider-wrap {
+        width: 90px;
+    }
+
+    .shortcuts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
 }

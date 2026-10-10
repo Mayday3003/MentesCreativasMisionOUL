@@ -3,163 +3,377 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador Orbital Realista: Sol - Tierra - Luna</title>
+    <title>Sol • Tierra • Luna — Instrumento de Visualización Orbital</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Fuente Inter / Roboto para interfaz limpia estilo PhET -->
+    <!-- Tipografía de instrumentos científicos: IBM Plex Sans & IBM Plex Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 </head>
 <body>
     <canvas id="webgl-canvas"></canvas>
 
-    <!-- Botón Minimalista Flotante Superior Izquierdo (Chevron) -->
-    <button id="btn-toggle-sidebar" class="btn-toggle-panel" title="Ocultar o mostrar panel de control" aria-label="Alternar panel">
-        <svg id="toggle-chevron" class="chevron-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
+    <!-- Overlay de Telemetría sobre la escena (HUD superpuesto en mono, sin caja) -->
+    <div class="hud-telemetry" id="hud-telemetry" aria-label="Lectura de telemetría orbital">
+        <div class="hud-row"><span class="hud-label">elongación ψ</span><span class="hud-value" id="readout-psi">000.0°</span></div>
+        <div class="hud-row"><span class="hud-label">iluminación</span><span class="hud-value" id="readout-illum">0.0%</span></div>
+        <div class="hud-row"><span class="hud-label">día sinódico</span><span class="hud-value" id="readout-day">d 00.0 / 29.5</span></div>
+    </div>
+
+    <!-- Botón de anclaje de panel lateral (Plegado / Desplegado técnico) -->
+    <button id="btn-toggle-sidebar" class="btn-toggle-panel" title="Plegar / desplegar panel [P]" aria-label="Alternar panel de control" aria-controls="sidebar-panel" aria-expanded="true">
+        <svg id="toggle-chevron" class="chevron-icon" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="10 3 5 8 10 13"></polyline>
         </svg>
     </button>
 
-    <!-- Panel Lateral de Controles Estilo PhET (Translúcido y Ligero) -->
-    <div class="ui-container glass-panel" id="sidebar-panel">
-        <div class="header-section">
-            <span class="badge">Astrofísica 3D</span>
-            <h1>Sol • Tierra • Luna</h1>
-            <p class="subtitle">Simulador orbital interactivo y física magnetosférica</p>
-        </div>
-        
-        <!-- Perspectiva de Referencia (Control Segmentado Científico) -->
-        <div class="control-group">
-            <h3>Perspectiva de Referencia</h3>
-            <div class="segmented-control" role="tablist">
-                <button class="segmented-btn active" id="btn-cam-global" data-mode="global" role="tab">Libre</button>
-                <button class="segmented-btn" id="btn-cam-sun" data-mode="sun" role="tab">Heliocéntrica</button>
-                <button class="segmented-btn" id="btn-cam-earth" data-mode="earth" role="tab">Geocéntrica</button>
-                <button class="segmented-btn" id="btn-cam-moon" data-mode="moon" role="tab">Selenocéntrica</button>
-            </div>
-        </div>
+    <!-- PANEL DE CONTROL CIENTÍFICO (Observatorio / Consola sin cajas internas) -->
+    <aside class="ui-panel" id="sidebar-panel" aria-label="Panel de Instrumentación Orbital">
+        <!-- Encabezado compacto del instrumento -->
+        <header class="panel-header">
+            <h1 class="panel-title">Sistema Sol-Tierra-Luna</h1>
+            <p class="panel-subtitle">El entendimiento de la magnetosfera terrestre y el viento solar</p>
+        </header>
 
-        <!-- Ciclo Lunar (Fases Astronómicas Rigurosas con Pausa Automática) -->
-        <div class="control-group">
-            <h3>Ciclo Lunar</h3>
-            <div class="lunar-phase-grid">
-                <button class="btn-phase" id="btn-phase-new" data-phase="new">
-                    <span class="phase-title">Luna Nueva</span>
-                    <span class="phase-sub">0° • Conjunción</span>
+        <!-- SECCIÓN 1: Ciclo Lunar (Control único integrado con 4 marcas y miniaturas) -->
+        <section class="instrument-section" aria-labelledby="sec-lunar-heading">
+            <div class="section-label" id="sec-lunar-heading">
+                <span>Fases de la luna</span>
+            </div>
+
+
+                <!-- 4 marcas con miniaturas SVG que funcionan como atajos -->
+                <div class="phase-tick-row" role="radiogroup" aria-label="Fases cardinales lunares">
+                    <!-- 0° Luna Nueva -->
+                    <button class="phase-tick-btn active" id="btn-phase-new" data-deg="0" role="radio" aria-checked="true" title="0° • Conjunción Sol-Luna (Luna nueva)">
+                        <svg class="phase-svg" viewBox="0 0 24 24" width="20" height="20">
+                            <circle cx="12" cy="12" r="10" class="moon-disk-bg" />
+                            <circle cx="12" cy="12" r="9.5" class="moon-shadow" />
+                        </svg>
+                        <span class="phase-tick-deg">0°</span>
+                        <span class="phase-tick-label">Nueva</span>
+                    </button>
+
+                    <!-- 90° Cuarto Creciente -->
+                    <button class="phase-tick-btn" id="btn-phase-first" data-deg="90" role="radio" aria-checked="false" title="90° • Cuadratura oriental (Cuarto creciente)">
+                        <svg class="phase-svg" viewBox="0 0 24 24" width="20" height="20">
+                            <circle cx="12" cy="12" r="10" class="moon-disk-bg" />
+                            <path d="M 12 2 A 10 10 0 0 1 12 22 Z" class="moon-lit" />
+                        </svg>
+                        <span class="phase-tick-deg">90°</span>
+                        <span class="phase-tick-label">Creciente</span>
+                    </button>
+
+                    <!-- 180° Luna Llena -->
+                    <button class="phase-tick-btn" id="btn-phase-full" data-deg="180" role="radio" aria-checked="false" title="180° • Oposición astronómica (Luna llena)">
+                        <svg class="phase-svg" viewBox="0 0 24 24" width="20" height="20">
+                            <circle cx="12" cy="12" r="10" class="moon-disk-bg" />
+                            <circle cx="12" cy="12" r="9.5" class="moon-lit" />
+                        </svg>
+                        <span class="phase-tick-deg">180°</span>
+                        <span class="phase-tick-label">Llena</span>
+                    </button>
+
+                    <!-- 270° Cuarto Menguante -->
+                    <button class="phase-tick-btn" id="btn-phase-third" data-deg="270" role="radio" aria-checked="false" title="270° • Cuadratura occidental (Cuarto menguante)">
+                        <svg class="phase-svg" viewBox="0 0 24 24" width="20" height="20">
+                            <circle cx="12" cy="12" r="10" class="moon-disk-bg" />
+                            <path d="M 12 2 A 10 10 0 0 0 12 22 Z" class="moon-lit" />
+                        </svg>
+                        <span class="phase-tick-deg">270°</span>
+                        <span class="phase-tick-label">Menguante</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: Perspectiva de Referencia -->
+        <section class="instrument-section" aria-labelledby="sec-perspective-heading">
+            <div class="section-label" id="sec-perspective-heading">
+                <span>Marco de referencia</span>
+                <span class="section-shortcut-hint">1 - 4</span>
+            </div>
+            <div class="segmented-control" role="tablist" aria-label="Marco de referencia de cámara">
+                <button class="segmented-btn active" id="btn-cam-global" data-mode="global" role="tab" aria-selected="true" title="Perspectiva global libre (órbita general)">
+                    <span class="segmented-txt">Libre</span>
                 </button>
-                <button class="btn-phase" id="btn-phase-first" data-phase="first">
-                    <span class="phase-title">Cuarto Creciente</span>
-                    <span class="phase-sub">90° • Cuadratura oriental</span>
+                <button class="segmented-btn" id="btn-cam-sun" data-mode="sun" role="tab" aria-selected="false" title="Marco centrado en el Sol">
+                    <span class="segmented-txt">Heliocéntrico</span>
                 </button>
-                <button class="btn-phase" id="btn-phase-full" data-phase="full">
-                    <span class="phase-title">Luna Llena</span>
-                    <span class="phase-sub">180° • Oposición</span>
+                <button class="segmented-btn" id="btn-cam-earth" data-mode="earth" role="tab" aria-selected="false" title="Marco geocéntrico (Tierra)">
+                    <span class="segmented-txt">Geocéntrico</span>
                 </button>
-                <button class="btn-phase" id="btn-phase-third" data-phase="third">
-                    <span class="phase-title">Cuarto Menguante</span>
-                    <span class="phase-sub">270° • Cuadratura occidental</span>
+                <button class="segmented-btn" id="btn-cam-moon" data-mode="moon" role="tab" aria-selected="false" title="Marco selenocéntrico (Luna)">
+                    <span class="segmented-txt">Selenocéntrico</span>
                 </button>
             </div>
-        </div>
+        </section>
 
-        <!-- Capas y Entorno (Toggle Switches Estilo iOS / Material) -->
-        <div class="control-group">
-            <h3>Capas y Entorno</h3>
-            <div class="switch-list">
-                <label class="switch-item">
-                    <span class="switch-label">Estrellas de fondo</span>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="switch-stars" checked>
-                        <span class="switch-slider"></span>
+        <!-- SECCIÓN 3: Capas Físicas (Filas de una sola línea sin cajas, subtítulo en tooltip) -->
+        <section class="instrument-section" aria-labelledby="sec-layers-heading">
+            <div class="section-label" id="sec-layers-heading">
+                <span>Capas de simulación</span>
+            </div>
+            <div class="layer-list" role="group" aria-label="Capas de simulación">
+                <!-- Capa: Campo Magnético -->
+                <label class="layer-row" for="switch-magnet" title="Dipolo geomagnético según modelos IGRF / WMM">
+                    <div class="layer-identity">
+                        <span class="color-swatch swatch-geomag"></span>
+                        <span class="layer-name">Campo magnético</span>
+                    </div>
+                    <div class="layer-actions">
+                        <kbd class="key-hint">M</kbd>
+                        <input type="checkbox" id="switch-magnet" checked class="fine-checkbox" aria-label="Alternar campo magnético">
                     </div>
                 </label>
-                <label class="switch-item">
-                    <span class="switch-label">Campo Magnético</span>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="switch-magnet" checked>
-                        <span class="switch-slider"></span>
+
+                <!-- Capa: Viento Solar -->
+                <label class="layer-row" for="switch-wind" title="Plasma solar ionizado, líneas de flujo y choque (Bow Shock)">
+                    <div class="layer-identity">
+                        <span class="color-swatch swatch-wind"></span>
+                        <span class="layer-name">Viento solar</span>
+                    </div>
+                    <div class="layer-actions">
+                        <kbd class="key-hint">V</kbd>
+                        <input type="checkbox" id="switch-wind" checked class="fine-checkbox" aria-label="Alternar viento solar">
                     </div>
                 </label>
-                <label class="switch-item">
-                    <span class="switch-label">Viento Solar</span>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="switch-wind" checked>
-                        <span class="switch-slider"></span>
+
+                <!-- Capa: Órbitas -->
+                <label class="layer-row" for="switch-orbits" title="Trayectorias y planos de traslación keplerianos">
+                    <div class="layer-identity">
+                        <span class="color-swatch swatch-orbits"></span>
+                        <span class="layer-name">Trayectorias orbitales</span>
+                    </div>
+                    <div class="layer-actions">
+                        <kbd class="key-hint">O</kbd>
+                        <input type="checkbox" id="switch-orbits" checked class="fine-checkbox" aria-label="Alternar órbitas">
                     </div>
                 </label>
-                <label class="switch-item">
-                    <span class="switch-label">Órbitas</span>
-                    <div class="switch-toggle">
-                        <input type="checkbox" id="switch-orbits" checked>
-                        <span class="switch-slider"></span>
+
+                <!-- Capa: Estrellas de fondo -->
+                <label class="layer-row" for="switch-stars" title="Esfera de fondo sideral y mapa estelar">
+                    <div class="layer-identity">
+                        <span class="color-swatch swatch-stars"></span>
+                        <span class="layer-name">Bóveda estelar</span>
+                    </div>
+                    <div class="layer-actions">
+                        <kbd class="key-hint">E</kbd>
+                        <input type="checkbox" id="switch-stars" checked class="fine-checkbox" aria-label="Alternar bóveda estelar">
+                    </div>
+                </label>
+
+                <!-- Capa: Líneas de Elongación Angular -->
+                <label class="layer-row" for="switch-elongation" title="Rayo Sol-Tierra-Luna y arco de elongación aparente">
+                    <div class="layer-identity">
+                        <span class="color-swatch swatch-elongation"></span>
+                        <span class="layer-name">Ángulo de elongación</span>
+                    </div>
+                    <div class="layer-actions">
+                        <kbd class="key-hint">L</kbd>
+                        <input type="checkbox" id="switch-elongation" checked class="fine-checkbox" aria-label="Alternar líneas de elongación">
+                    </div>
+                </label>
+
+                <!-- Capa: Reducir movimiento (Accesibilidad y confort visual) -->
+                <label class="layer-row" for="switch-reduced-motion" title="Congela partículas y animaciones de campo para evitar mareo visual">
+                    <div class="layer-identity">
+                        <span class="color-swatch swatch-motion"></span>
+                        <span class="layer-name">Reducir movimiento</span>
+                    </div>
+                    <div class="layer-actions">
+                        <kbd class="key-hint">R</kbd>
+                        <input type="checkbox" id="switch-reduced-motion" class="fine-checkbox" aria-label="Alternar reducción de movimiento">
                     </div>
                 </label>
             </div>
+        </section>
+    </aside>
+
+    <!-- Botón flotante '?' de instrumentación anclado abajo a la derecha sobre la barra -->
+    <button id="btn-open-help" class="btn-help-fab" title="Manual del instrumento y atajos [H o ?]" aria-label="Abrir manual y atajos de teclado">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+    </button>
+
+    <!-- BARRA INFERIOR DE CRONOMETRÍA Y VELOCIDAD (Estación base grounded) -->
+    <nav class="bottom-timebar" id="bottom-time-bar" aria-label="Control temporal de simulación">
+        <!-- Elemento principal: Fecha y hora simulada en mono -->
+        <div class="timebar-simdate" id="timebar-simdate" title="Fecha y hora de la época simulada">
+            <span class="simdate-k">Época:</span>
+            <span class="simdate-v" id="sim-date-display">Día 0.00 • 00:00:00</span>
         </div>
 
-        <div class="info-footer">
-            <div class="info-item">
-                <span class="info-label">Interacción 3D:</span>
-                <span class="info-val">Clic izquierdo: orbitar • Clic derecho: panear • Rueda: zoom</span>
+        <div class="timebar-divider"></div>
+
+        <!-- Grupo de transporte temporal -->
+        <div class="timebar-transport">
+            <!-- Paso atrás (Step back) -->
+            <button class="btn-transport" id="btn-step-back" title="Retroceder paso angular [←]" aria-label="Retroceder paso">
+                <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                    <rect x="2" y="3" width="2" height="10" rx="0.5"></rect>
+                    <polygon points="13 3 5 8 13 13"></polygon>
+                </svg>
+            </button>
+
+            <!-- Play / Pause (un único botón con icono según estado) -->
+            <button class="btn-transport btn-transport-primary" id="btn-play-pause" title="Pausar simulación [Espacio]" aria-label="Reproducir o pausar">
+                <svg id="icon-pause" viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                    <rect x="3.5" y="3" width="3" height="10" rx="0.5"></rect>
+                    <rect x="9.5" y="3" width="3" height="10" rx="0.5"></rect>
+                </svg>
+                <svg id="icon-play" class="hidden" viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                    <polygon points="4 3 13 8 4 13"></polygon>
+                </svg>
+            </button>
+
+            <!-- Paso adelante (Step forward) -->
+            <button class="btn-transport" id="btn-step-fwd" title="Avanzar paso angular [→]" aria-label="Avanzar paso">
+                <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+                    <polygon points="3 3 11 8 3 13"></polygon>
+                    <rect x="12" y="3" width="2" height="10" rx="0.5"></rect>
+                </svg>
+            </button>
+
+            <!-- Restablecer a 1.0x -->
+            <button class="btn-transport btn-reset-cadence" id="btn-reset-speed" title="Restablecer velocidad a 1.0x" aria-label="Restablecer velocidad normal">
+                <span>1.0×</span>
+            </button>
+        </div>
+
+        <div class="timebar-divider"></div>
+
+        <!-- Regulador de velocidad logarítmica con un ÚNICO valor de velocidad en mono -->
+        <div class="timebar-speed-unit">
+            <span class="speed-caption">Velocidad:</span>
+            <div class="speed-slider-wrap">
+                <input type="range" id="speed-slider" min="-1" max="2" step="0.05" value="0" class="instrument-range time-range" aria-label="Velocidad temporal logarítmica">
+                <div class="speed-ticks">
+                    <span class="tick" data-val="0.1x">0.1×</span>
+                    <span class="tick active" data-val="1x">1×</span>
+                    <span class="tick" data-val="10x">10×</span>
+                    <span class="tick" data-val="100x">100×</span>
+                </div>
             </div>
+            <span id="speed-label" class="speed-readout-mono">1.0×</span>
+            <span id="speed-high-alert" class="speed-high-alert hidden" title="A velocidad elevada se omite el detalle de horas y segundos">Alta velocidad</span>
         </div>
-    </div>
+    </nav>
 
-    <!-- Barra Inferior Flotante de Control Temporal Estilo PhET -->
-    <div class="bottom-bar glass-panel" id="bottom-time-bar">
-        <button class="btn-bottom-icon" id="btn-play-pause" title="Pausar / Reanudar simulación" aria-label="Reproducir o pausar">
-            <svg id="icon-pause" class="svg-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                <rect x="6" y="4" width="4" height="16" rx="1.5"></rect>
-                <rect x="14" y="4" width="4" height="16" rx="1.5"></rect>
-            </svg>
-            <svg id="icon-play" class="svg-icon hidden" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-                <polygon points="6 4 19 12 6 20 6 4"></polygon>
-            </svg>
-        </button>
-
-        <button class="btn-bottom-icon" id="btn-reset-speed" title="Restablecer velocidad a 1.0x" aria-label="Restablecer velocidad">
-            <svg class="svg-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-            </svg>
-        </button>
-
-        <div class="bottom-slider-group">
-            <span class="bottom-slider-title">Velocidad:</span>
-            <input type="range" id="speed-slider" min="0.1" max="4.0" step="0.1" value="1.0" class="slider-input">
-            <span id="speed-label" class="bottom-slider-val">1.0x</span>
-        </div>
-    </div>
-
-    <!-- Botón Flotante Circular de Ayuda/Glosario (Material Design FAB) -->
-    <button id="btn-help-fab" class="fab-help" title="Abrir Glosario de Términos" aria-label="Ayuda y Glosario">?</button>
-
-    <!-- Modal de Glosario de Términos -->
-    <div id="modal-glossary" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div class="modal-card glass-panel">
-            <div class="modal-header">
-                <h2 id="modal-title">Glosario de Términos</h2>
-                <button id="btn-close-modal" class="btn-close-modal" aria-label="Cerrar modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="glossary-item">
-                    <h4>Sistema Heliocéntrico</h4>
-                    <p>Perspectiva astronómica centrada en el Sol. Describe las órbitas de los planetas y cuerpos alrededor del centro gravitacional solar.</p>
+    <!-- MODAL DE DOCUMENTACIÓN CIENTÍFICA, CONCEPTOS Y MODELOS -->
+    <div id="modal-glossary" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-console">
+            <header class="modal-console-header">
+                <div>
+                    <h2 id="modal-title">Manual de Instrumentación y Referencia Científica</h2>
+                    <p class="modal-console-sub">Guía de operación, conceptos astrofísicos y modelos geomagnéticos</p>
                 </div>
-                <div class="glossary-item">
-                    <h4>Sistema Geocéntrico</h4>
-                    <p>Perspectiva astronómica centrada en la Tierra. Es la base de los sistemas de coordenadas celestes ecuatoriales y la observación terrestre.</p>
+                <button id="btn-close-modal" class="btn-close-console" aria-label="Cerrar modal">&times;</button>
+            </header>
+
+            <!-- Barra de Navegación por Pestañas del Modal (Tab Navbar) -->
+            <nav class="modal-nav-tabs" role="tablist" aria-label="Secciones del manual">
+                <button class="modal-tab-btn active" id="tab-btn-shortcuts" data-tab="tab-shortcuts" role="tab" aria-selected="true">
+                    <span>Atajos y Controles</span>
+                </button>
+                <button class="modal-tab-btn" id="tab-btn-definitions" data-tab="tab-definitions" role="tab" aria-selected="false">
+                    <span>Conceptos Básicos</span>
+                </button>
+                <button class="modal-tab-btn" id="tab-btn-models" data-tab="tab-models" role="tab" aria-selected="false">
+                    <span>Modelos y Física</span>
+                </button>
+            </nav>
+            
+            <div class="modal-console-body">
+                <!-- PESTAÑA 1: ATAJOS Y NAVEGACIÓN 3D -->
+                <div class="tab-pane active" id="tab-shortcuts" role="tabpanel" aria-labelledby="tab-btn-shortcuts">
+                    <div class="manual-section">
+                        <h3>Interacción y Navegación 3D</h3>
+                        <div class="shortcuts-grid">
+                            <div class="shortcut-item"><kbd>Clic Izq</kbd><span>Arrastrar para orbitar alrededor del objetivo enfocado</span></div>
+                            <div class="shortcut-item"><kbd>Clic Der</kbd><span>Arrastrar para desplazar/panear la cámara</span></div>
+                            <div class="shortcut-item"><kbd>Rueda</kbd><span>Acercar / alejar zoom libremente</span></div>
+                            <div class="shortcut-item"><kbd>Arrastre</kbd><span>Atenuación automática de velocidad (0.2×) para evitar mareo</span></div>
+                        </div>
+                    </div>
+
+                    <div class="manual-section">
+                        <h3>Atajos de Teclado del Operador</h3>
+                        <div class="shortcuts-grid">
+                            <div class="shortcut-item"><kbd>Espacio</kbd><span>Alternar reproducción / pausa temporal</span></div>
+                            <div class="shortcut-item"><kbd>P</kbd><span>Ocultar / desplegar panel de control lateral</span></div>
+                            <div class="shortcut-item"><kbd>←</kbd> / <kbd>→</kbd><span>Retroceso / avance discreto de fase orbital</span></div>
+                            <div class="shortcut-item"><kbd>1</kbd> - <kbd>4</kbd><span>Cambiar marco de referencia (Libre, Helio, Geo, Seleno)</span></div>
+                            <div class="shortcut-item"><kbd>M</kbd><span>Alternar campo geomagnético dipolar</span></div>
+                            <div class="shortcut-item"><kbd>V</kbd><span>Alternar plasma y viento solar</span></div>
+                            <div class="shortcut-item"><kbd>O</kbd><span>Alternar visualización de órbitas keplerianas</span></div>
+                            <div class="shortcut-item"><kbd>E</kbd><span>Alternar bóveda de estrellas de fondo</span></div>
+                            <div class="shortcut-item"><kbd>L</kbd><span>Alternar líneas y ángulo de elongación</span></div>
+                            <div class="shortcut-item"><kbd>R</kbd><span>Alternar modo Reducir movimiento</span></div>
+                            <div class="shortcut-item"><kbd>H</kbd> / <kbd>?</kbd><span>Abrir / cerrar este manual técnico</span></div>
+                            <div class="shortcut-item"><kbd>Esc</kbd><span>Cerrar diálogos y modales abiertos</span></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="glossary-item">
-                    <h4>Sistema Selenocéntrico</h4>
-                    <p>Perspectiva centrada en la Luna. Útil para estudiar la mecánica de satélites lunares y la orientación del disco lunar hacia la Tierra.</p>
+
+                <!-- PESTAÑA 2: CONCEPTOS BÁSICOS Y DEFINICIONES -->
+                <div class="tab-pane hidden" id="tab-definitions" role="tabpanel" aria-labelledby="tab-btn-definitions">
+                    <div class="glossary-rows">
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Viento Solar</span>
+                            <span class="glossary-desc">Flujo supersónico continuo de plasma magnetizado (electrones, protones y núcleos de helio) eyectado por la corona solar a velocidades de entre 300 y 800 km/s. Transporta consigo el Campo Magnético Interplanetario (IMF) y choca directamente contra la magnetosfera terrestre.</span>
+                        </div>
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Elongación Angular (ψ)</span>
+                            <span class="glossary-desc">Distancia angular aparente entre el Sol y la Luna (o un cuerpo celeste) medida desde el centro de la Tierra. Define de manera geométrica las fases lunares: 0° en conjunción (Luna nueva), 90° en cuadratura oriental (Cuarto creciente), 180° en oposición (Luna llena) y 270° en cuadratura occidental (Cuarto menguante).</span>
+                        </div>
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Mes Sinódico</span>
+                            <span class="glossary-desc">Intervalo de tiempo exacto (~29.53059 días terrestres) que le toma a la Luna completar un ciclo entero de fases sucesivas. Es más largo que el mes sideral (~27.3 días) porque la Tierra avanza en su traslación alrededor del Sol mientras la Luna orbita.</span>
+                        </div>
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Fracción Iluminada del Disco (k)</span>
+                            <span class="glossary-desc">Proporción geométrica del disco lunar observable iluminada por luz solar directa desde la perspectiva terrestre: \(k = \frac{1 - \cos(\psi)}{2}\). Varía del 0% en Luna nueva al 100% en Luna llena.</span>
+                        </div>
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Rotación Sincrónica</span>
+                            <span class="glossary-desc">Fenómeno gravitacional por acoplamiento de marea donde el período de rotación de la Luna sobre su eje es idéntico a su período orbital alrededor de la Tierra, provocando que siempre muestre la misma cara al observador terrestre.</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="glossary-item">
-                    <h4>Elongación y Ciclo Sinódico</h4>
-                    <p>El ciclo lunar describe la posición angular de la Luna con respecto a la línea colineal Sol-Tierra: Luna Nueva (0°), Cuarto Creciente (90°), Luna Llena (180°) y Cuarto Menguante (270°).</p>
-                </div>
-                <div class="glossary-item">
-                    <h4>Magnetosfera y Viento Solar</h4>
-                    <p>La cavidad protectora generada por el campo geomagnético terrestre (modelos WMM/IGRF) que desvía el plasma ionizado del viento solar mediante un frente de choque (Bow Shock).</p>
+
+                <!-- PESTAÑA 3: MODELOS Y FÍSICA -->
+                <div class="tab-pane hidden" id="tab-models" role="tabpanel" aria-labelledby="tab-btn-models">
+                    <div class="manual-section">
+                        <h3>Geometría del Ciclo Sinódico</h3>
+                        <p>La velocidad angular relativa entre el movimiento orbital de la Luna (\(\omega_m = 6.5\text{ rad/s}\)) y la traslación de la Tierra (\(\omega_e = 0.5\text{ rad/s}\)) produce la velocidad sinódica colineal:</p>
+                        <div class="formula-box">
+                            <code>\omega_{\text{sin}} = \omega_{\text{luna}} - \omega_{\text{tierra}} = 6.5 - 0.5 = 6.0\text{ rad/s}</code>
+                            <code>\psi(t) = ((\omega_{\text{sin}} \cdot t - \pi) \pmod{2\pi}) \quad \longrightarrow \quad k = \frac{1 - \cos(\psi)}{2}</code>
+                        </div>
+                    </div>
+
+                    <div class="glossary-rows">
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Modelo Dipolar WMM / IGRF</span>
+                            <span class="glossary-desc">Aproximación de primer orden del campo geomagnético terrestre generada por el efecto dinamo en el núcleo externo de hierro líquido. Las líneas de campo siguen coordenadas de caparazón \(L\) de McIlwain: \(r = L \sin^2(\theta)\), con el eje magnético inclinado ~10.5° respecto al eje de rotación geográfico.</span>
+                        </div>
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Onda de Choque de Proa (Bow Shock)</span>
+                            <span class="glossary-desc">Superficie hiperbólica donde el viento solar supersónico desacelera bruscamente al colisionar contra el obstáculo magnético terrestre a ~10-14 radios terrestres frente a la Tierra, elevando la temperatura del plasma y desviándolo lateralmente.</span>
+                        </div>
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Magnetopausa y Magnetocola</span>
+                            <span class="glossary-desc">Límite de equilibrio hidrodinámico entre la presión dinámica del viento solar y la presión magnética terrestre. En el lado diurno está fuertemente comprimida (~10 \(R_E\)), mientras que en el lado nocturno se estira cientos de radios terrestres formando la magnetocola.</span>
+                        </div>
+                        <div class="glossary-entry">
+                            <span class="glossary-term">Marcos de Referencia Astronómicos</span>
+                            <span class="glossary-desc">Transición matemática sinérgica entre sistemas de coordenadas (Heliocéntrico, Geocéntrico, Selenocéntrico). La simulación traslada el centro focal de los controles orbitales sin congelar la libertad de rotación ni el zoom interactivo del usuario.</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
